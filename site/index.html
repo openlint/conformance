@@ -14,7 +14,7 @@
   .tool .num { font-size: 2rem; font-weight: 600; }
   .bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--rule); margin-top: .6rem; }
   .bar span { display: block; }
-  .s-exact { background: var(--accent); } .s-detected { background: #c9a227; } .s-fail { background: #c0392b; } .s-error { background: #7f8c8d; } .s-unsupported { background: transparent; color: var(--muted); border: 1px dashed var(--muted); }
+  .s-exact { background: var(--accent); } .s-detected { background: #c9a227; } .s-fail { background: #c0392b; } .s-error { background: #7f8c8d; } .s-unsupported { background: transparent; border: 1px dashed var(--muted); } .pill.s-unsupported { color: var(--muted); }
   .table-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 15px; }
   th, td { text-align: left; padding: .5rem .6rem; border-top: 1px solid var(--rule); vertical-align: top; }
@@ -23,55 +23,83 @@
   .pill { display: inline-block; min-width: 4.5em; padding: .1rem .5rem; border-radius: 999px; font-size: 13px; color: #fff; }
   details { font-size: 13px; color: var(--muted); }
   code { font-size: 13px; }
-  .legend span { margin-right: 1rem; white-space: nowrap; }
+  .legend > span { display: inline-block; margin: 0 1rem .3rem 0; }
+  .tool h3 { margin: 0 0 .2rem; font-size: 1.05rem; }
+  details.area { border-top: 1px solid var(--rule); padding: .6rem 0; }
+  details.area > summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: baseline; }
+  .area-scores { display: flex; flex-wrap: wrap; gap: .2rem .9rem; font-size: 13px; color: var(--muted); margin-left: auto; }
+  a.req { font-family: ui-monospace, Menlo, monospace; font-size: 12px; margin-right: .4rem; }
 </style>
 </head>
 <body>
 <main>
   <nav class="crumbs"><a href="https://openlint.org/">openlint</a> / <a href="./">conformance</a></nav>
   <h1>Conformance</h1>
-  <p class="lede">Does the same ruleset give the same results in every linter? Each case is a ruleset, a document and the expected results. They're run against the latest release of each tool. Redocly can't read Spectral or OpenLint rulesets, so it runs a native equivalent of each case where its rule format can express one.</p>
+  <p class="lede">Does a linter do what the <a href="https://spec.openlint.org/">OpenLint specification</a> says, and does the same ruleset give the same results everywhere? Every test is run daily against the latest release of each tool.</p>
   <p class="muted" id="meta">Loading…</p>
-  <div class="tools" id="tools"></div>
   <p class="legend muted">
     <span><span class="pill s-exact">exact</span> same rule, same path</span>
     <span><span class="pill s-detected">detected</span> same rule and count, different path</span>
     <span><span class="pill s-fail">fail</span> different results</span>
     <span><span class="pill s-error">error</span> the tool could not run the case</span>
-    <span><span class="pill s-unsupported">unsupported</span> the tool's rule format can't express the case</span>
+    <span><span class="pill s-unsupported">unsupported</span> outside the tool's scope: an OpenAPI-only linter given another document, or a rule format that can't express the test</span>
   </p>
-  <div class="table-wrap"><table id="matrix"></table></div>
+  <section id="spec"></section>
   <hr>
-  <p class="muted">Expected results are currently written by hand and agree with Spectral. Tying every case to a requirement in the <a href="https://spec.openlint.org/">specification</a> is in progress. Disagree with an expected result? <a href="https://github.com/openlint/conformance/issues">Open an issue</a>. Raw data: <a href="matrix.json">matrix.json</a>.</p>
+  <section id="interop"></section>
+  <hr>
+  <p class="muted">Specification tests come from <a href="https://github.com/openlint/spec/tree/main/v1/conformance">openlint/spec</a>; disagree with one? <a href="https://github.com/openlint/spec/issues">Open a spec issue</a>. Interop cases live in <a href="https://github.com/openlint/conformance">openlint/conformance</a>. Raw data: <a href="matrix.json">matrix.json</a>.</p>
   <footer>
     <p>An <a href="https://apicommons.org">API Commons</a> effort · <a href="https://github.com/openlint/conformance">github.com/openlint/conformance</a> · <a href="https://openlint.org/roadmap/">Roadmap</a> · <a href="https://github.com/openlint/.github/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a> · <a href="https://openlint.org/privacy/">Privacy</a> · <a href="https://openlint.org/terms/">Terms</a></p>
   </footer>
 </main>
 <script>
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const STATUSES = ["exact", "detected", "fail", "error", "unsupported"];
+const SPEC = "https://spec.openlint.org/v1/draft/";
+const count = (rows, t) => Object.fromEntries(STATUSES.map((s) => [s, rows.filter((r) => r.results[t].status === s).length]));
+const bar = (c, n) => `<div class="bar">${STATUSES.map((s) => `<span class="s-${s}" style="width:${(c[s] / n) * 100}%"></span>`).join("")}</div>`;
+function cards(m, rows) {
+  const n = rows.length;
+  const skipped = m.tools.filter((t) => count(rows, t).unsupported === n);
+  const note = skipped.length ? `<p class="muted">Not shown: ${skipped.map(esc).join(", ")}, which can't run these tests.</p>` : "";
+  return note + `<div class="tools">${m.tools.filter((t) => !skipped.includes(t)).map((t) => {
+    const c = count(rows, t);
+    const runnable = n - c.unsupported;
+    return `<div class="tool"><h3>${esc(t)}</h3><div class="muted">${esc(m.versions?.[t])}</div>
+      <div class="num">${c.exact}<span class="muted" style="font-size:1rem"> / ${runnable} exact</span></div>
+      <div class="muted">${c.detected} detected · ${c.fail} fail · ${c.error} error${c.unsupported ? `<br>${c.unsupported} unsupported` : ""}</div>${bar(c, n)}</div>`;
+  }).join("")}</div>`;
+}
+function cell(x) {
+  const why = x.note ? esc(x.note) : x.expected ? `expected ${x.expected.map(esc).join(", ") || "no results"}<br>got ${x.got.map(esc).join(", ") || "no results"}` : "";
+  return `<td class="cell"><span class="pill s-${x.status}">${x.status}</span>${why ? `<details><summary>why</summary>${why}</details>` : ""}</td>`;
+}
+function table(m, rows, link) {
+  const head = `<tr><th>Test</th>${m.tools.map((t) => `<th style="text-align:center">${esc(t)}</th>`).join("")}</tr>`;
+  return `<div class="table-wrap"><table>${head}${rows.map((r) => `<tr><td><a href="${link(r)}"><code>${esc(r.id)}</code></a>
+    <div class="muted">${esc(r.purpose)}</div>
+    ${(r.for || []).map((q) => `<a class="req" href="${SPEC}#${esc(q)}">${esc(q)}</a>`).join(" ")}</td>
+    ${m.tools.map((t) => cell(r.results[t])).join("")}</tr>`).join("")}</table></div>`;
+}
 fetch("matrix.json").then((r) => r.json()).then((m) => {
-  const n = m.cases.length;
-  document.getElementById("meta").textContent =
-    `${n} cases · run ${new Date(m.generated).toUTCString()} · ` + m.tools.map((t) => `${t} ${m.versions?.[t] ?? ""}`).join(" · ");
-  document.getElementById("tools").innerHTML = m.tools.map((t) => {
-    const c = { exact: 0, detected: 0, fail: 0, error: 0, unsupported: 0 };
-    m.cases.forEach((r) => c[r.results[t].status]++);
-    const bar = Object.entries(c).map(([s, v]) => `<span class="s-${s}" style="width:${(v / n) * 100}%"></span>`).join("");
-    return `<div class="tool"><h2>${esc(t)}</h2><div class="muted">${esc(m.versions?.[t] ?? "")}</div>
-      <div class="num">${c.exact}<span class="muted" style="font-size:1rem"> / ${n} exact</span></div>
-      <div class="muted">${c.exact + c.detected} detected · ${c.fail} fail · ${c.error} error${c.unsupported ? ` · ${c.unsupported} unsupported` : ""}</div><div class="bar">${bar}</div></div>`;
-  }).join("");
-  const head = `<tr><th>Case</th>${m.tools.map((t) => `<th style="text-align:center">${esc(t)}</th>`).join("")}</tr>`;
-  const rows = m.cases.map((r) => {
-    const cells = m.tools.map((t) => {
-      const x = r.results[t];
-      const why = x.status === "unsupported" ? "" : x.status === "error" ? esc(x.error)
-        : [...(x.missing || []).map((k) => "missing " + esc(k)), ...(x.extra || []).map((k) => "extra " + esc(k))].join("<br>");
-      return `<td class="cell"><span class="pill s-${x.status}">${x.status}</span>${why ? `<details><summary>why</summary>${why}</details>` : ""}</td>`;
-    }).join("");
-    return `<tr><td><a href="https://github.com/openlint/conformance/tree/main/cases/${esc(r.case)}"><code>${esc(r.case)}</code></a><div class="muted">${esc(r.description)}</div></td>${cells}</tr>`;
-  }).join("");
-  document.getElementById("matrix").innerHTML = head + rows;
+  const spec = m.suites.spec, interop = m.suites.interop;
+  document.getElementById("meta").innerHTML = `Run ${esc(new Date(m.generated).toUTCString())} · specification tests from <a href="${m.spec.repo}/tree/${esc(m.spec.ref)}/v1/conformance">openlint/spec@${esc(m.spec.ref)}</a> · ` +
+    m.tools.map((t) => `${esc(t)} ${esc(m.versions?.[t])}`).join(" · ");
+  const areas = [...new Set(spec.map((r) => r.id.split("/")[0]))];
+  const specLink = (r) => `${m.spec.repo}/tree/${m.spec.ref}/v1/conformance/${r.id}`;
+  document.getElementById("spec").innerHTML = `<h2>Specification tests <span class="muted">(${spec.length})</span></h2>
+    <p>The <a href="${SPEC}#conformance-tests">conformance tests</a> published with the specification. Each one checks one or more requirements. Open an area to see every test.</p>
+    ${cards(m, spec)}
+    ${areas.map((a) => {
+      const rows = spec.filter((r) => r.id.split("/")[0] === a);
+      return `<details class="area"><summary><strong>${esc(a)}</strong> <span class="muted">${rows.length} tests</span>
+        <span class="area-scores">${m.tools.map((t) => { const c = count(rows, t); return `<span title="${esc(t)}">${esc(t)} ${c.unsupported === rows.length ? "–" : `${c.exact}/${rows.length - c.unsupported}`}</span>`; }).join("")}</span></summary>
+        ${table(m, rows, specLink)}</details>`;
+    }).join("")}`;
+  document.getElementById("interop").innerHTML = `<h2>Interop cases <span class="muted">(${interop.length})</span></h2>
+    <p>Common rules compared across tools, including tools that can't read Spectral or OpenLint rulesets. Redocly runs a native <code>redocly.yaml</code> translation of each case where its rule format can express one.</p>
+    ${cards(m, interop)}${table(m, interop, (r) => `https://github.com/openlint/conformance/tree/main/cases/${r.id}`)}`;
 }).catch(() => { document.getElementById("meta").textContent = "Could not load matrix.json."; });
 </script>
 </body>

@@ -6,6 +6,6 @@
   "type": "module",
   "scripts": {
     "tools": "npm i --no-save openlint@latest @stoplight/spectral-cli@latest @quobix/vacuum@latest @redocly/cli@latest ibm-openapi-validator@latest",
-    "test": "node run.mjs"
+    "test": "node run.mjs --spec spec/v1/conformance"
   }
 }
