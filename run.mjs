@@ -15,7 +15,7 @@
 import { execFileSync, execFile } from "node:child_process";
 import { cpus } from "node:os";
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, mkdtempSync, existsSync } from "node:fs";
-import { join, dirname, basename, relative } from "node:path";
+import { join, dirname, basename, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
@@ -24,8 +24,8 @@ const arg = (name, fallback) => {
   const i = process.argv.indexOf(name);
   return i > -1 ? process.argv[i + 1] : fallback;
 };
-const bin = arg("--bin", join(root, "node_modules/.bin"));
-const specDir = arg("--spec", join(root, "spec/v1/conformance"));
+const bin = resolve(arg("--bin", join(root, "node_modules/.bin")));
+const specDir = resolve(arg("--spec", join(root, "spec/v1/conformance")));
 
 function run(cmd, args, cwd) {
   try {
