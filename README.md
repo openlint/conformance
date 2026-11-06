@@ -1,6 +1,6 @@
 # OpenLint Conformance
 
-Does the same ruleset give the same results in every linter? This suite runs a set of cases against the latest release of [OpenLint](https://github.com/openlint/openlint), [Spectral](https://github.com/stoplightio/spectral), [vacuum](https://github.com/daveshanley/vacuum) and [Redocly CLI](https://github.com/Redocly/redocly-cli), and publishes the matrix at **[conformance.openlint.org](https://conformance.openlint.org/)**.
+Does the same ruleset give the same results in every linter? This suite runs a set of cases against the latest release of [OpenLint](https://github.com/openlint/openlint), [Spectral](https://github.com/stoplightio/spectral), [vacuum](https://github.com/daveshanley/vacuum), the [IBM OpenAPI Validator](https://github.com/IBM/openapi-validator), [Insomnia's inso CLI](https://github.com/Kong/insomnia) and [Redocly CLI](https://github.com/Redocly/redocly-cli), and publishes the matrix at **[conformance.openlint.org](https://conformance.openlint.org/)**.
 
 It's a standalone project on purpose. OpenLint is one of the implementations under test, not the owner of the results. Any linter that implements the [OpenLint ruleset specification](https://spec.openlint.org/) can be added.
 
@@ -28,7 +28,8 @@ Redocly CLI can't read Spectral or OpenLint rulesets. A case can include a `redo
 ## Run it
 
 ```
-npm run tools   # installs the latest openlint, spectral, vacuum and redocly
+npm run tools   # installs the latest openlint, spectral, vacuum, redocly and the IBM validator
+                # inso: install the latest binary from github.com/Kong/insomnia/releases (see the workflow)
 npm test        # writes results/matrix.json and results/matrix.md
 ```
 

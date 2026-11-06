@@ -47,6 +47,18 @@ const adapters = {
     run(join(bin, "vacuum"), ["spectral-report", "-r", rs, doc, out]);
     return JSON.parse(readFileSync(out, "utf8"));
   },
+  ibm: (rs, doc) => {
+    const out = JSON.parse(run(join(bin, "lint-openapi"), ["-r", rs, "-j", doc]));
+    return ["error", "warning", "info", "hint"].flatMap((s) => out[s]?.results ?? []).map((r) => ({ code: r.rule, path: r.path }));
+  },
+  insomnia: (rs, doc) => {
+    // inso has no JSON output: "15:10 - Error - <code> - <message> - <dot.path>"
+    const inso = existsSync(join(bin, "inso")) ? join(bin, "inso") : "inso";
+    return run(inso, ["lint", "spec", doc, "-r", rs]).split("\n")
+      .map((l) => l.match(/^\s*\d+:\d+ - \w+ - (\S+) - .* - (\S+)\s*$/))
+      .filter(Boolean)
+      .map(([, code, path]) => ({ code, path: [path] }));
+  },
   redocly: (rs, doc) => {
     const out = JSON.parse(run(join(bin, "redocly"), ["lint", doc, "--config", native(rs, "redocly.yaml"), "--format", "json"]));
     return out.problems.map((p) => ({ code: p.ruleId.replace(/^rule\//, ""), path: fromPointer(p.location[0].pointer) }));
@@ -67,8 +79,13 @@ function listCases(dir, prefix = "") {
 }
 
 function version(tool) {
+  const cmd = { ibm: "lint-openapi", insomnia: "inso" }[tool] ?? tool;
+  const exe = existsSync(join(bin, cmd)) ? join(bin, cmd) : cmd;
   const args = tool === "vacuum" ? ["version"] : ["--version"];
-  try { return run(join(bin, tool), args).trim().split("\n")[0]; } catch { return "unknown"; }
+  try {
+    const v = run(exe, args).trim().split("\n").find((l) => /\d+\.\d+/.test(l)) ?? "unknown";
+    return v.replace(/^validator: ([^;]+);.*/, "$1");
+  } catch { return "unknown"; }
 }
 
 const cases = listCases(join(root, "cases"));

@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "tools": "npm i --no-save openlint@latest @stoplight/spectral-cli@latest @quobix/vacuum@latest @redocly/cli@latest",
+    "tools": "npm i --no-save openlint@latest @stoplight/spectral-cli@latest @quobix/vacuum@latest @redocly/cli@latest ibm-openapi-validator@latest",
     "test": "node run.mjs"
   }
 }

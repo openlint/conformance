@@ -25,6 +25,12 @@ jobs:
         with:
           node-version: 22
       - run: npm run tools
+      - name: Install Insomnia inso (latest)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(gh api 'repos/Kong/insomnia/releases?per_page=20' --jq '[.[] | select(.prerelease == false) | .assets[] | select(.name | test("^inso-linux-x64-.*\\.tar\\.xz$"))][0].browser_download_url')
+          curl -sL "$url" | tar -xJ -C node_modules/.bin
       - run: npm test
       - name: Build site
         run: cp results/matrix.json site/
