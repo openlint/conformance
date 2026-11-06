@@ -51,7 +51,9 @@ function spectralJson(out, err) {
   return JSON.parse(out.slice(start));
 }
 function firstLine(s) {
-  return String(s || "").split("\n").map((l) => l.trim()).find((l) => l && !/DeprecationWarning|trace-deprecation/.test(l));
+  const lines = String(s || "").split("\n").map((l) => l.trim()).filter((l) => l && !/DeprecationWarning|trace-deprecation/.test(l));
+  // Spectral-family CLIs print a generic line first and the cause as "Error #1: ..."
+  return lines.find((l) => /^Error #\d+:/.test(l)) ?? lines[0];
 }
 function capture(cmd, args, cwd) {
   return new Promise((resolve) => {
