@@ -1,0 +1,5 @@
+rules:
+  path-lower:
+    given: $.paths
+    severity: warn
+    then: {field: "@key", function: pattern, functionOptions: {match: "^[^A-Z]*$"}}

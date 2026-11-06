@@ -1,0 +1,9 @@
+{
+  "description": "length max on a string",
+  "expected": [
+    {
+      "code": "short-title",
+      "path": "info.title"
+    }
+  ]
+}

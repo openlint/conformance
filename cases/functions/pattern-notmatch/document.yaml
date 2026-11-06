@@ -1,0 +1,31 @@
+openapi: 3.1.0
+info:
+  title: Pets
+  version: 1.0.0
+  description: A pet store.
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      summary: List pets
+      tags: [pets]
+      responses:
+        '200':
+          description: OK
+    post:
+      operationId: Create_Pet
+      responses:
+        '201':
+          description: Created
+  /Users/{id}:
+    get:
+      operationId: getUser
+      summary: Get a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: OK

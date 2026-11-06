@@ -1,0 +1,10 @@
+rules:
+  info-shape:
+    given: $.info
+    severity: error
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: [contact]

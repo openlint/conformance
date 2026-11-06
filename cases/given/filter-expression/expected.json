@@ -1,0 +1,9 @@
+{
+  "description": "JSONPath filter expression on a property (JSONPath Plus vs RFC 9535 differ here)",
+  "expected": [
+    {
+      "code": "get-needs-tags",
+      "path": "paths./Users/{id}.get"
+    }
+  ]
+}

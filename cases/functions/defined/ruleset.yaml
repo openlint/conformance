@@ -1,0 +1,5 @@
+rules:
+  op-tags:
+    given: $.paths[*][*]
+    severity: warn
+    then: {field: tags, function: defined}

@@ -1,0 +1,8 @@
+aliases:
+  Operation:
+    - $.paths[*][*]
+rules:
+  op-summary:
+    given: "#Operation"
+    severity: error
+    then: {field: summary, function: truthy}

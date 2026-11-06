@@ -1,0 +1,5 @@
+rules:
+  short-title:
+    given: $.info.title
+    severity: warn
+    then: {function: length, functionOptions: {max: 3}}

@@ -1,0 +1,5 @@
+rules:
+  no-underscore:
+    given: $.paths[*][*].operationId
+    severity: error
+    then: {function: pattern, functionOptions: {notMatch: "_"}}

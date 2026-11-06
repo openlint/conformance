@@ -1,0 +1,9 @@
+{
+  "description": "enumeration reports values outside the set",
+  "expected": [
+    {
+      "code": "version-set",
+      "path": "info.version"
+    }
+  ]
+}

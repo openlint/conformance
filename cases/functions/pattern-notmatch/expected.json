@@ -1,0 +1,9 @@
+{
+  "description": "pattern.notMatch reports values that match",
+  "expected": [
+    {
+      "code": "no-underscore",
+      "path": "paths./pets.post.operationId"
+    }
+  ]
+}

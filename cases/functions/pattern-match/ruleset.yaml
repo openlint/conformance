@@ -1,0 +1,5 @@
+rules:
+  op-id-camel:
+    given: $.paths[*][*].operationId
+    severity: error
+    then: {function: pattern, functionOptions: {match: "^[a-z][a-zA-Z0-9]*$"}}

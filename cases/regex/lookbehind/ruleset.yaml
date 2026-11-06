@@ -1,0 +1,5 @@
+rules:
+  no-trailing-s:
+    given: $.paths[*][*].operationId
+    severity: warn
+    then: {function: pattern, functionOptions: {notMatch: "(?<=t)s$"}}

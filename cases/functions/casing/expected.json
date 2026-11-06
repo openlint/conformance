@@ -1,0 +1,9 @@
+{
+  "description": "casing kebab on path segments via @key",
+  "expected": [
+    {
+      "code": "path-lower",
+      "path": "paths./Users/{id}"
+    }
+  ]
+}

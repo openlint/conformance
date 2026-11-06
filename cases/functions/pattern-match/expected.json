@@ -1,0 +1,9 @@
+{
+  "description": "pattern.match reports values that do not match",
+  "expected": [
+    {
+      "code": "op-id-camel",
+      "path": "paths./pets.post.operationId"
+    }
+  ]
+}

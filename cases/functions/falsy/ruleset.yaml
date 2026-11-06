@@ -1,0 +1,5 @@
+rules:
+  no-summary:
+    given: $.paths[*].get
+    severity: warn
+    then: {field: summary, function: falsy}

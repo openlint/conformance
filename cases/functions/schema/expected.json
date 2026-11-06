@@ -1,0 +1,9 @@
+{
+  "description": "schema validates a value against JSON Schema",
+  "expected": [
+    {
+      "code": "info-shape",
+      "path": "info"
+    }
+  ]
+}

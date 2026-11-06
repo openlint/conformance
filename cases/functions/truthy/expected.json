@@ -1,0 +1,9 @@
+{
+  "description": "truthy reports a falsy or missing field",
+  "expected": [
+    {
+      "code": "op-summary",
+      "path": "paths./pets.post"
+    }
+  ]
+}

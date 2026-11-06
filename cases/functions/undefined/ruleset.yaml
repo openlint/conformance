@@ -1,0 +1,5 @@
+rules:
+  no-tags:
+    given: $.paths[*][*]
+    severity: warn
+    then: {field: tags, function: undefined}

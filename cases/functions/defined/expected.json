@@ -1,0 +1,13 @@
+{
+  "description": "defined reports a missing field",
+  "expected": [
+    {
+      "code": "op-tags",
+      "path": "paths./pets.post"
+    },
+    {
+      "code": "op-tags",
+      "path": "paths./Users/{id}.get"
+    }
+  ]
+}

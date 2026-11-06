@@ -1,0 +1,5 @@
+rules:
+  get-needs-tags:
+    given: "$.paths[*][?(@.operationId == 'getUser')]"
+    severity: warn
+    then: {field: tags, function: truthy}

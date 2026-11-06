@@ -1,0 +1,9 @@
+{
+  "description": "aliases resolve in given",
+  "expected": [
+    {
+      "code": "op-summary",
+      "path": "paths./pets.post"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "description": "falsy reports a truthy field",
+  "expected": [
+    {
+      "code": "no-summary",
+      "path": "paths./pets.get.summary"
+    },
+    {
+      "code": "no-summary",
+      "path": "paths./Users/{id}.get.summary"
+    }
+  ]
+}

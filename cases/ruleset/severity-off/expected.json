@@ -1,0 +1,4 @@
+{
+  "description": "a rule with severity off produces no results",
+  "expected": []
+}

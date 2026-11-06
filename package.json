@@ -1,0 +1,11 @@
+{
+  "name": "openlint-conformance",
+  "private": true,
+  "description": "Conformance suite for the OpenLint ruleset specification: OpenLint, Spectral and vacuum, side by side.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "tools": "npm i --no-save openlint@latest @stoplight/spectral-cli@latest @quobix/vacuum@latest",
+    "test": "node run.mjs"
+  }
+}

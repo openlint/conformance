@@ -1,0 +1,5 @@
+rules:
+  version-set:
+    given: $.info.version
+    severity: error
+    then: {function: enumeration, functionOptions: {values: ["2.0.0"]}}

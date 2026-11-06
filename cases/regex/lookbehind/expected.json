@@ -1,0 +1,9 @@
+{
+  "description": "regex dialect: lookbehind (ECMAScript supports it, Go RE2 does not)",
+  "expected": [
+    {
+      "code": "no-trailing-s",
+      "path": "paths./pets.get.operationId"
+    }
+  ]
+}

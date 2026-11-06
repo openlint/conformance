@@ -1,0 +1,9 @@
+{
+  "description": "undefined reports a present field",
+  "expected": [
+    {
+      "code": "no-tags",
+      "path": "paths./pets.get.tags"
+    }
+  ]
+}

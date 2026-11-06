@@ -1,0 +1,5 @@
+rules:
+  op-summary:
+    given: $.paths[*][*]
+    severity: error
+    then: {field: summary, function: truthy}
