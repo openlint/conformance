@@ -1,0 +1,11 @@
+# Native Redocly equivalent of ruleset.yaml: Redocly CLI cannot read
+# Spectral/OpenLint rulesets, so this expresses the same rule intent.
+extends: []
+rules:
+  rule/no-trailing-s:
+    subject:
+      type: Operation
+      property: operationId
+    assertions:
+      notPattern: /(?<=t)s$/
+    severity: warn

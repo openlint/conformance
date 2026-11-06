@@ -6,7 +6,7 @@
 //
 // Usage: node run.mjs [--bin <dir with openlint, spectral, vacuum binaries>]
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, mkdtempSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, mkdtempSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -29,6 +29,16 @@ function parseJson(out) {
   const start = out.indexOf("[");
   return start === -1 ? [] : JSON.parse(out.slice(start));
 }
+// Tools that cannot read the case's ruleset.yaml use a native equivalent
+// next to it. A case without one is reported as unsupported for that tool.
+class Unsupported extends Error {}
+const native = (rs, file) => {
+  const p = join(dirname(rs), file);
+  if (!existsSync(p)) throw new Unsupported(`no ${file}`);
+  return p;
+};
+const fromPointer = (ptr) =>
+  ptr.replace(/^#\//, "").split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~")).filter(Boolean);
 const adapters = {
   openlint: (rs, doc) => parseJson(run(join(bin, "openlint"), ["lint", doc, "-r", rs, "-f", "json", "--quiet"])),
   spectral: (rs, doc) => parseJson(run(join(bin, "spectral"), ["lint", doc, "-r", rs, "-f", "json", "--quiet"])),
@@ -36,6 +46,10 @@ const adapters = {
     const out = join(mkdtempSync(join(tmpdir(), "vac-")), "r.json");
     run(join(bin, "vacuum"), ["spectral-report", "-r", rs, doc, out]);
     return JSON.parse(readFileSync(out, "utf8"));
+  },
+  redocly: (rs, doc) => {
+    const out = JSON.parse(run(join(bin, "redocly"), ["lint", doc, "--config", native(rs, "redocly.yaml"), "--format", "json"]));
+    return out.problems.map((p) => ({ code: p.ruleId.replace(/^rule\//, ""), path: fromPointer(p.location[0].pointer) }));
   },
 };
 
@@ -70,6 +84,10 @@ for (const name of cases) {
     try {
       got = normalize(adapter(join(dir, "ruleset.yaml"), join(dir, "document.yaml")));
     } catch (e) {
+      if (e instanceof Unsupported) {
+        row.results[tool] = { status: "unsupported", error: e.message };
+        continue;
+      }
       const lines = String(e.stderr || e.message).split("\n");
       error = lines.find((l) => /error/i.test(l) && !/DeprecationWarning/.test(l)) || lines.find(Boolean);
     }
@@ -88,10 +106,10 @@ for (const name of cases) {
 
 mkdirSync(join(root, "results"), { recursive: true });
 writeFileSync(join(root, "results/matrix.json"), JSON.stringify(matrix, null, 2));
-const icon = { exact: "✅", detected: "🟡", fail: "❌", error: "⚠️" };
+const icon = { exact: "✅", detected: "🟡", fail: "❌", error: "⚠️", unsupported: "➖" };
 const lines = [`| Case | ${matrix.tools.join(" | ")} |`, `|---|${matrix.tools.map(() => "---").join("|")}|`];
 for (const r of matrix.cases) lines.push(`| ${r.case} | ${matrix.tools.map((t) => icon[r.results[t].status]).join(" | ")} |`);
 const count = (t, ...s) => matrix.cases.filter((r) => s.includes(r.results[t].status)).length;
 const totals = matrix.tools.map((t) => `${t} ${count(t, "exact")} exact, ${count(t, "exact", "detected")} detected / ${matrix.cases.length}`);
-writeFileSync(join(root, "results/matrix.md"), lines.join("\n") + `\n\n✅ exact (same rule, same path) · 🟡 detected (same rule and count, different path) · ❌ fail · ⚠️ error\n\n${totals.join(" · ")}\n`);
+writeFileSync(join(root, "results/matrix.md"), lines.join("\n") + `\n\n✅ exact (same rule, same path) · 🟡 detected (same rule and count, different path) · ❌ fail · ⚠️ error · ➖ unsupported\n\n${totals.join(" · ")}\n`);
 console.log(readFileSync(join(root, "results/matrix.md"), "utf8"));

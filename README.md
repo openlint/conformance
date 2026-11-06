@@ -1,6 +1,6 @@
 # OpenLint Conformance
 
-Does the same ruleset give the same results in every linter? This suite runs a set of cases against the latest release of [OpenLint](https://github.com/openlint/openlint), [Spectral](https://github.com/stoplightio/spectral) and [vacuum](https://github.com/daveshanley/vacuum), and publishes the matrix at **[conformance.openlint.org](https://conformance.openlint.org/)**.
+Does the same ruleset give the same results in every linter? This suite runs a set of cases against the latest release of [OpenLint](https://github.com/openlint/openlint), [Spectral](https://github.com/stoplightio/spectral), [vacuum](https://github.com/daveshanley/vacuum) and [Redocly CLI](https://github.com/Redocly/redocly-cli), and publishes the matrix at **[conformance.openlint.org](https://conformance.openlint.org/)**.
 
 It's a standalone project on purpose. OpenLint is one of the implementations under test, not the owner of the results. Any linter that implements the [OpenLint ruleset specification](https://spec.openlint.org/) can be added.
 
@@ -21,11 +21,14 @@ A case is data, not code. The runner passes each case to an adapter per tool. Th
 | **detected** | The same number of results per rule, reported at a different path. A missing `summary` can fairly be reported at the operation or at `summary`. |
 | **fail** | Different results |
 | **error** | The tool couldn't run the case |
+| **unsupported** | The tool's rule format can't express the case |
+
+Redocly CLI can't read Spectral or OpenLint rulesets. A case can include a `redocly.yaml` that expresses the same rule in Redocly's configurable-rules format. Redocly runs that file, and a case without one shows as unsupported. Because these files are translations, a Redocly result measures whether Redocly *can express and detect the same problem*, not whether it runs the same ruleset.
 
 ## Run it
 
 ```
-npm run tools   # installs the latest openlint, spectral and vacuum
+npm run tools   # installs the latest openlint, spectral, vacuum and redocly
 npm test        # writes results/matrix.json and results/matrix.md
 ```
 

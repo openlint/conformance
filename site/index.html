@@ -14,7 +14,7 @@
   .tool .num { font-size: 2rem; font-weight: 600; }
   .bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--rule); margin-top: .6rem; }
   .bar span { display: block; }
-  .s-exact { background: var(--accent); } .s-detected { background: #c9a227; } .s-fail { background: #c0392b; } .s-error { background: #7f8c8d; }
+  .s-exact { background: var(--accent); } .s-detected { background: #c9a227; } .s-fail { background: #c0392b; } .s-error { background: #7f8c8d; } .s-unsupported { background: transparent; color: var(--muted); border: 1px dashed var(--muted); }
   .table-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 15px; }
   th, td { text-align: left; padding: .5rem .6rem; border-top: 1px solid var(--rule); vertical-align: top; }
@@ -30,7 +30,7 @@
 <main>
   <nav class="crumbs"><a href="https://openlint.org/">openlint</a> / <a href="./">conformance</a></nav>
   <h1>Conformance</h1>
-  <p class="lede">Does the same ruleset give the same results in every linter? Each case is a ruleset, a document and the expected results. They're run against the latest release of each tool.</p>
+  <p class="lede">Does the same ruleset give the same results in every linter? Each case is a ruleset, a document and the expected results. They're run against the latest release of each tool. Redocly can't read Spectral or OpenLint rulesets, so it runs a native equivalent of each case where its rule format can express one.</p>
   <p class="muted" id="meta">Loading…</p>
   <div class="tools" id="tools"></div>
   <p class="legend muted">
@@ -38,6 +38,7 @@
     <span><span class="pill s-detected">detected</span> same rule and count, different path</span>
     <span><span class="pill s-fail">fail</span> different results</span>
     <span><span class="pill s-error">error</span> the tool could not run the case</span>
+    <span><span class="pill s-unsupported">unsupported</span> the tool's rule format can't express the case</span>
   </p>
   <div class="table-wrap"><table id="matrix"></table></div>
   <hr>
@@ -53,18 +54,18 @@ fetch("matrix.json").then((r) => r.json()).then((m) => {
   document.getElementById("meta").textContent =
     `${n} cases · run ${new Date(m.generated).toUTCString()} · ` + m.tools.map((t) => `${t} ${m.versions?.[t] ?? ""}`).join(" · ");
   document.getElementById("tools").innerHTML = m.tools.map((t) => {
-    const c = { exact: 0, detected: 0, fail: 0, error: 0 };
+    const c = { exact: 0, detected: 0, fail: 0, error: 0, unsupported: 0 };
     m.cases.forEach((r) => c[r.results[t].status]++);
     const bar = Object.entries(c).map(([s, v]) => `<span class="s-${s}" style="width:${(v / n) * 100}%"></span>`).join("");
     return `<div class="tool"><h2>${esc(t)}</h2><div class="muted">${esc(m.versions?.[t] ?? "")}</div>
       <div class="num">${c.exact}<span class="muted" style="font-size:1rem"> / ${n} exact</span></div>
-      <div class="muted">${c.exact + c.detected} detected · ${c.fail} fail · ${c.error} error</div><div class="bar">${bar}</div></div>`;
+      <div class="muted">${c.exact + c.detected} detected · ${c.fail} fail · ${c.error} error${c.unsupported ? ` · ${c.unsupported} unsupported` : ""}</div><div class="bar">${bar}</div></div>`;
   }).join("");
   const head = `<tr><th>Case</th>${m.tools.map((t) => `<th style="text-align:center">${esc(t)}</th>`).join("")}</tr>`;
   const rows = m.cases.map((r) => {
     const cells = m.tools.map((t) => {
       const x = r.results[t];
-      const why = x.status === "error" ? esc(x.error)
+      const why = x.status === "unsupported" ? "" : x.status === "error" ? esc(x.error)
         : [...(x.missing || []).map((k) => "missing " + esc(k)), ...(x.extra || []).map((k) => "extra " + esc(k))].join("<br>");
       return `<td class="cell"><span class="pill s-${x.status}">${x.status}</span>${why ? `<details><summary>why</summary>${why}</details>` : ""}</td>`;
     }).join("");
