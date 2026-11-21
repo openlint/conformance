@@ -14,7 +14,7 @@
 // Usage: node run.mjs [--bin <dir with tool binaries>] [--spec <path to v1/conformance>]
 import { execFileSync, execFile } from "node:child_process";
 import { cpus } from "node:os";
-import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, mkdtempSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, mkdtempSync, existsSync, realpathSync } from "node:fs";
 import { join, dirname, basename, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -83,8 +83,7 @@ const adapters = {
   },
   vacuum: async ({ ruleset, document, dir }) => {
     const file = join(mkdtempSync(join(tmpdir(), "vac-")), "r.json");
-    const { err } = await capture(exe("vacuum"), ["spectral-report", "-r", ruleset, document, file], dir);
-    if (/failed to parse specification/.test(err)) throw new Unsupported("only lints OpenAPI documents");
+    const { err } = await capture(exe("vacuum"), ["spectral-report", "--openlint", "-r", ruleset, document, file], dir);
     if (!existsSync(file)) throw new Rejected(firstLine(err) || "no report written");
     return JSON.parse(readFileSync(file, "utf8"));
   },
@@ -137,6 +136,17 @@ function matches(exp, act, ctx) {
     } else if (k === "source") {
       const want = v === "${document}" ? ctx.document : v;
       if (!act.source || basename(String(act.source)) !== basename(want)) return false;
+    } else if (k === "range") {
+      // A fixture can assert only one endpoint, but a result must carry both.
+      for (const endpoint of ["start", "end"]) {
+        const position = act.range?.[endpoint];
+        if (!Number.isInteger(position?.line) || position.line < 0 ||
+            !Number.isInteger(position?.character) || position.character < 0) return false;
+        if (v[endpoint] && (v[endpoint].line !== position.line ||
+            v[endpoint].character !== position.character)) return false;
+      }
+      const { start, end } = act.range;
+      if (end.line < start.line || (end.line === start.line && end.character < start.character)) return false;
     } else if (JSON.stringify(v) !== JSON.stringify(act[k])) {
       return false;
     }
@@ -177,12 +187,7 @@ function compare(expect, got, ctx) {
   return { status: detected ? "detected" : "fail", expected: summary(exp), got: summary(got) };
 }
 
-// A ruleset-only test still needs a document to lint.
-const stubDir = mkdtempSync(join(tmpdir(), "stub-"));
-const stubDoc = join(stubDir, "document.yaml");
-writeFileSync(stubDoc, "openapi: 3.1.0\ninfo:\n  title: Stub\n  version: 1.0.0\npaths: {}\n");
-
-async function runTest(test, tool) {
+async function runTest(test, tool, stubDoc) {
   const ctx = { document: test.document ?? stubDoc };
   let got, rejectedWhy;
   try {
@@ -261,49 +266,60 @@ function specRef() {
   }
 }
 
-const suites = { spec: loadSpecTests(), interop: loadInteropTests() };
-const matrix = {
-  generated: new Date().toISOString(),
-  tools,
-  versions: Object.fromEntries(tools.map((t) => [t, version(t)])),
-  spec: { repo: "https://github.com/openlint/spec", ref: specRef() },
-  suites: {},
-};
-// Run every (test, tool) pair through a small worker pool.
-async function pool(jobs, size) {
-  let next = 0;
-  await Promise.all(Array.from({ length: size }, async () => {
-    while (next < jobs.length) await jobs[next++]();
-  }));
-}
-const jobs = [];
-for (const [name, tests] of Object.entries(suites)) {
-  matrix.suites[name] = tests.map((t) => {
-    const row = { id: t.id, for: t.for, purpose: t.purpose, results: {} };
-    for (const tool of tools) {
-      jobs.push(async () => {
-        row.results[tool] = await runTest(t, tool);
-        process.stderr.write(".");
-      });
-    }
-    return row;
-  });
-}
-await pool(jobs, Math.max(2, cpus().length));
-process.stderr.write("\n");
+// Importing the runner for regression tests must not invoke installed tools.
+export { adapters, matches, compare };
 
-mkdirSync(join(root, "results"), { recursive: true });
-writeFileSync(join(root, "results/matrix.json"), JSON.stringify(matrix, null, 2));
+if (process.argv[1] && existsSync(process.argv[1]) &&
+    realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+  // A ruleset-only test still needs a document to lint.
+  const stubDir = mkdtempSync(join(tmpdir(), "stub-"));
+  const stubDoc = join(stubDir, "document.yaml");
+  writeFileSync(stubDoc, "openapi: 3.1.0\ninfo:\n  title: Stub\n  version: 1.0.0\npaths: {}\n");
 
-const statuses = ["exact", "detected", "fail", "error", "unsupported"];
-const lines = [];
-for (const [name, rows] of Object.entries(matrix.suites)) {
-  lines.push(`## ${name} (${rows.length} tests)`, "", `| Tool | ${statuses.join(" | ")} |`, `|---|${statuses.map(() => "---").join("|")}|`);
-  for (const tool of tools) {
-    const c = Object.fromEntries(statuses.map((s) => [s, rows.filter((r) => r.results[tool].status === s).length]));
-    lines.push(`| ${tool} ${matrix.versions[tool]} | ${statuses.map((s) => c[s]).join(" | ")} |`);
+  const suites = { spec: loadSpecTests(), interop: loadInteropTests() };
+  const matrix = {
+    generated: new Date().toISOString(),
+    tools,
+    versions: Object.fromEntries(tools.map((t) => [t, version(t)])),
+    spec: { repo: "https://github.com/openlint/spec", ref: specRef() },
+    suites: {},
+  };
+  // Run every (test, tool) pair through a small worker pool.
+  async function pool(jobs, size) {
+    let next = 0;
+    await Promise.all(Array.from({ length: size }, async () => {
+      while (next < jobs.length) await jobs[next++]();
+    }));
   }
-  lines.push("");
+  const jobs = [];
+  for (const [name, tests] of Object.entries(suites)) {
+    matrix.suites[name] = tests.map((t) => {
+      const row = { id: t.id, for: t.for, purpose: t.purpose, results: {} };
+      for (const tool of tools) {
+        jobs.push(async () => {
+          row.results[tool] = await runTest(t, tool, stubDoc);
+          process.stderr.write(".");
+        });
+      }
+      return row;
+    });
+  }
+  await pool(jobs, Math.max(2, cpus().length));
+  process.stderr.write("\n");
+
+  mkdirSync(join(root, "results"), { recursive: true });
+  writeFileSync(join(root, "results/matrix.json"), JSON.stringify(matrix, null, 2));
+
+  const statuses = ["exact", "detected", "fail", "error", "unsupported"];
+  const lines = [];
+  for (const [name, rows] of Object.entries(matrix.suites)) {
+    lines.push(`## ${name} (${rows.length} tests)`, "", `| Tool | ${statuses.join(" | ")} |`, `|---|${statuses.map(() => "---").join("|")}|`);
+    for (const tool of tools) {
+      const c = Object.fromEntries(statuses.map((s) => [s, rows.filter((r) => r.results[tool].status === s).length]));
+      lines.push(`| ${tool} ${matrix.versions[tool]} | ${statuses.map((s) => c[s]).join(" | ")} |`);
+    }
+    lines.push("");
+  }
+  writeFileSync(join(root, "results/matrix.md"), lines.join("\n"));
+  console.log(lines.join("\n"));
 }
-writeFileSync(join(root, "results/matrix.md"), lines.join("\n"));
-console.log(lines.join("\n"));
