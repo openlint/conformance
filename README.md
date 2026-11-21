@@ -21,7 +21,8 @@ It's a standalone project on purpose. OpenLint is one of the implementations und
 | **unsupported** | Outside the tool's scope: an OpenAPI-only linter given another kind of document, or a rule format that can't express the test |
 
 Tool behaviour the runner accounts for:
-- **vacuum and the IBM validator only lint OpenAPI documents.** Many specification tests use plain YAML, because the spec is format-agnostic. Those tests show as unsupported for these two tools.
+- **vacuum is run with `--openlint`**, its OpenLint compatibility mode. This mode supports the plain JSON and YAML documents used by the specification tests. Use vacuum v0.42.1 or later.
+- **The IBM validator only lints OpenAPI documents.** Specification tests that use other document formats show as unsupported for it.
 - **The IBM validator, given an invalid ruleset,** reports the problem and then lints with IBM's own default ruleset, exiting 0. The runner counts the report as a rejection.
 - **inso has no JSON output.** Its text output is parsed instead. The npm `insomnia-inso` package is years out of date, so CI installs the latest binary from Kong's releases.
 
@@ -33,6 +34,8 @@ npm run tools   # installs the latest openlint, spectral, vacuum, redocly and th
 git clone https://github.com/openlint/spec
 npm test        # writes results/matrix.json and results/matrix.md
 ```
+
+`npm run test:unit` runs the runner regression tests without installing the linters. `npm test` runs those tests before the conformance suites.
 
 `node run.mjs --spec <path to v1/conformance> --bin <dir with the tool binaries>` overrides the defaults. A GitHub Action runs both suites daily and on every push, and publishes `site/` with the latest `matrix.json`.
 
